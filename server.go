@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+  log.Println("starting")
 	listener, err := net.Listen("tcp", ":3333")
 	if err != nil {
 		log.Fatal("Error setting up TCP server:", err)
