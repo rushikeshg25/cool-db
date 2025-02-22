@@ -9,8 +9,21 @@ import (
 	"syscall"
 )
 
+type Request struct {
+	Method string
+	Path   string
+}
+
+type Server struct {
+	Requests chan Request
+	listener net.Listener
+	conn     net.Conn
+	buf      *bufio.Reader
+	err      error
+}
+
 func main() {
-  log.Println("starting")
+	log.Println("starting")
 	listener, err := net.Listen("tcp", ":3333")
 	if err != nil {
 		log.Fatal("Error setting up TCP server:", err)
@@ -41,7 +54,7 @@ func handleConnection(conn net.Conn) {
 				log.Println("Client disconnected gracefully.")
 				break
 			}
-			
+
 			// Handle connection reset by peer errors
 			if netErr, ok := err.(*net.OpError); ok && netErr.Err.Error() == "read: connection reset by peer" {
 				log.Println("Connection reset by peer.")
