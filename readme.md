@@ -4,7 +4,9 @@ SQLite3 based database for storing cool stuff.
 
 ## Todo
 
-- [ ] GH workflow
+- GH workflow
+  - [x] lint
+  - [ ] test
 - [ ] tests
 - [ ] .open CMD
 - [ ] .close CMD
