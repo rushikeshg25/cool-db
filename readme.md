@@ -8,7 +8,7 @@ SQLite3 based database for storing cool stuff.
   - [x] lint
   - [ ] test
   - [ ] Docker image
-  - [ ] Trivy Security Scan
+  - [x] Trivy Security Scan
 - [ ] tests
 - [ ] .open CMD
 - [ ] .close CMD
