@@ -2,7 +2,7 @@ package server
 
 import "fmt"
 
-func Start() {
+func Start(dbFile string) {
 	printBanner()
 }
 

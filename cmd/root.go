@@ -4,27 +4,23 @@ import (
 	"log"
 	"os"
 
-	"github.com/rushikeshg25/coolDb/server"
 	"github.com/spf13/cobra"
 )
 
-// func init() {
-// 	rootCmd.AddCommand(startCmd)
-// 	rootCmd.AddCommand(versionCmd)
-// 	rootCmd.AddCommand(helpCmd)
-// 	rootCmd.AddCommand(quitCmd)
-// 	rootCmd.AddCommand(dbinfoCmd)
-// 	rootCmd.AddCommand(openCmd)
-// 	rootCmd.AddCommand(closeCmd)
-// }
+var (
+	Version = "0.1.0"
+)
+
+func init() {
+	rootCmd.AddCommand(VersionCmd)
+	rootCmd.AddCommand(RunCmd)
+}
 
 var rootCmd = &cobra.Command{
-	Use:   "cooldb",
+	Use:   "cool",
 	Short: "cooldb is a SQLite based database for storing cool stuff.",
 	Long:  `cooldb is a SQLite based database for storing cool stuff built with Go available at https://github.com/rushikeshg25/cool-db.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		server.Start()
-	},
+	Run:   nil,
 }
 
 func Execute() {
