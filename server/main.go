@@ -4,6 +4,7 @@ import "fmt"
 
 func Start(dbFile string) {
 	printBanner()
+	fmt.Println("Started Server")
 }
 
 func printBanner() {
