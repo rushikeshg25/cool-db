@@ -19,4 +19,8 @@ SQLite3 based database for storing cool stuff.
 - [x] help
 - [x] version
 - [x] Db file handling
+- [x] Interactive cli
+- [x] Query Input
+- [ ] Query Validation
+- [ ] Dot Command Input
 - [ ] .backup
