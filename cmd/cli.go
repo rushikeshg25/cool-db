@@ -2,11 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
+	gonanoid "github.com/matoous/go-nanoid/v2"
 	"github.com/rushikeshg25/coolDb/server"
 	"github.com/spf13/cobra"
+)
+
+const (
+	defaultDbFilePrefix = "cooldb"
 )
 
 var VersionCmd = &cobra.Command{
@@ -26,12 +30,24 @@ var RunCmd = &cobra.Command{
 		if len(args) == 1 {
 			file = args[0]
 			if !doesFileExist(file) {
-				log.Fatalf("File %s does not exist", file)
-				os.Exit(1)
+				fmt.Printf("File %s does not exist", file)
+				fmt.Println()
+				fmt.Printf("Creating new CoolDB file %s", file)
+				if err := createNewDbFile(file + ".db"); err != nil {
+					fmt.Printf("Error creating new file %s", err)
+					os.Exit(1)
+				}
 			}
 
 		} else if len(args) == 0 {
-			//Create a new Db file and start interactive cli
+			id, err := gonanoid.New()
+			if err != nil {
+				fmt.Println("Error Creating CoolDB file")
+			}
+			fileName := fmt.Sprintf("%s_%s.db", defaultDbFilePrefix, id)
+			if err := createNewDbFile(fileName); err != nil {
+				fmt.Println("Error Creating CoolDB file")
+			}
 		} else {
 			fmt.Println("Invalid arguments")
 		}
@@ -42,4 +58,13 @@ var RunCmd = &cobra.Command{
 func doesFileExist(file string) bool {
 	_, err := os.Stat(file)
 	return !os.IsNotExist(err)
+}
+
+func createNewDbFile(fileName string) error {
+	f, err := os.Create(fileName)
+	if err != nil {
+		return err
+	}
+	f.Close()
+	return nil
 }
