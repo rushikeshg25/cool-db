@@ -14,6 +14,9 @@ SQLite3 based database for storing cool stuff.
 - [ ] .close CMD
 - [ ] .dbinfo
 - [ ] WAL
-- [ ] .quit
-- [ ] .version
-- [x] Tcp
+- [ ] .quit/.exit
+- [ ] Auth
+- [x] help
+- [x] version
+- [x] Db file handling
+- [ ] .backup
