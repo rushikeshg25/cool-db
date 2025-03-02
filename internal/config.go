@@ -45,6 +45,7 @@ func InitFileConfig() *DatabaseHeader {
 		TextEncoding:        0,
 		CoolDbVersion:       0,
 	}
+	copy(header.HeaderString[:], "cooldb format 1\000")
 	return header
 }
 
