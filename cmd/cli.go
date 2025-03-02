@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"encoding/binary"
 	"fmt"
 	"os"
 
 	gonanoid "github.com/matoous/go-nanoid/v2"
+	"github.com/rushikeshg25/coolDb/internal"
 	"github.com/rushikeshg25/coolDb/server"
 	"github.com/spf13/cobra"
 )
@@ -33,7 +35,7 @@ var RunCmd = &cobra.Command{
 				fmt.Printf("File %s does not exist", file)
 				fmt.Println()
 				fmt.Printf("Creating new CoolDB file %s", file)
-				if err := createNewDbFile(file + ".db"); err != nil {
+				if err := createNewDbFile(file); err != nil {
 					fmt.Printf("Error creating new file %s", err)
 					os.Exit(1)
 				}
@@ -44,8 +46,8 @@ var RunCmd = &cobra.Command{
 			if err != nil {
 				fmt.Println("Error Creating CoolDB file")
 			}
-			fileName := fmt.Sprintf("%s_%s.db", defaultDbFilePrefix, id)
-			if err := createNewDbFile(fileName); err != nil {
+			file = fmt.Sprintf("%s_%s", defaultDbFilePrefix, id)
+			if err := createNewDbFile(file); err != nil {
 				fmt.Println("Error Creating CoolDB file")
 			}
 		} else {
@@ -65,6 +67,10 @@ func createNewDbFile(fileName string) error {
 	if err != nil {
 		return err
 	}
-	f.Close()
+	DbFileHeader := internal.InitFileConfig()
+	if err := binary.Write(f, binary.BigEndian, DbFileHeader); err != nil {
+		return err
+	}
+	defer f.Close()
 	return nil
 }
