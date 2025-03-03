@@ -1,6 +1,12 @@
 package internal
 
-import "sync"
+import (
+	"encoding/binary"
+	"os"
+	"sync"
+
+	"github.com/rushikeshg25/coolDb/internal/errors"
+)
 
 const (
 	DefaultPageSize           = 4096
@@ -12,7 +18,8 @@ const (
 type CoolConfig struct {
 	DbFile string
 	Header DatabaseHeader
-	Wg     sync.WaitGroup
+	F      *os.File
+	Wg     *sync.WaitGroup
 }
 
 type DatabaseHeader struct {
@@ -49,9 +56,21 @@ func InitFileConfig() *DatabaseHeader {
 	return header
 }
 
-func ParseFileConfig(filePath string) (*CoolConfig, error) {
+func ParseFileConfig(file string, filePath string, f *os.File) (*CoolConfig, error) {
+	var wg sync.WaitGroup
+	f.Seek(0, 0)
+	header := &DatabaseHeader{}
+	err := binary.Read(f, binary.LittleEndian, header)
+	if err != nil {
+		return nil, err
+	}
+	if string(header.HeaderString[:]) != "cooldb format 1\000" {
+		return nil, errors.InvalidFileErr(filePath)
+	}
 	return &CoolConfig{
 		DbFile: filePath,
-		Header: DatabaseHeader{},
+		Header: *header,
+		F:      f,
+		Wg:     &wg,
 	}, nil
 }

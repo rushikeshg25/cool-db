@@ -29,31 +29,35 @@ var RunCmd = &cobra.Command{
 	Short: "Run the cooldb server",
 	Run: func(cmd *cobra.Command, args []string) {
 		var file string
+		var filePath string
 		if len(args) == 1 {
 			file = args[0]
+			filePath = os.Getenv("PWD") + "/" + file
 			if !doesFileExist(file) {
-				fmt.Printf("File %s does not exist", file)
-				fmt.Println()
-				fmt.Printf("Creating new CoolDB file %s", file)
+				fmt.Printf("File %s does not exist\n", file)
+				fmt.Printf("Creating new CoolDB file %s\n", file)
 				if err := createNewDbFile(file); err != nil {
-					fmt.Printf("Error creating new file %s", err)
+					fmt.Printf("Error creating new file %s\n", err)
 					os.Exit(1)
 				}
 			}
-
 		} else if len(args) == 0 {
 			id, err := gonanoid.New()
 			if err != nil {
 				fmt.Println("Error Creating CoolDB file")
+				os.Exit(1)
 			}
 			file = fmt.Sprintf("%s_%s", defaultDbFilePrefix, id)
+			filePath = os.Getenv("PWD") + "/" + file
 			if err := createNewDbFile(file); err != nil {
 				fmt.Println("Error Creating CoolDB file")
+				os.Exit(1)
 			}
 		} else {
 			fmt.Println("Invalid arguments")
+			os.Exit(1)
 		}
-		server.Start(file)
+		server.Start(file, filePath)
 	},
 }
 
@@ -67,10 +71,15 @@ func createNewDbFile(fileName string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
+
 	DbFileHeader := internal.InitFileConfig()
 	if err := binary.Write(f, binary.BigEndian, DbFileHeader); err != nil {
 		return err
 	}
-	defer f.Close()
+	if err := f.Sync(); err != nil {
+		return fmt.Errorf("failed to sync file: %w", err)
+	}
+
 	return nil
 }

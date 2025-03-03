@@ -3,16 +3,29 @@ package server
 import (
 	"fmt"
 	"io"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/chzyer/readline"
 	"github.com/rushikeshg25/coolDb/internal"
+	"github.com/rushikeshg25/coolDb/internal/errors"
 )
 
-func Start(dbFile string) {
+func Start(dbFile string, dbFilePath string) {
 	printBanner()
-
-	fmt.Println(dbFile)
+	f, err := os.Open(dbFilePath)
+	if err != nil {
+		log.Fatalf("Error opening file: %v", err)
+		os.Exit(1)
+	}
+	defer f.Close()
+	c, err := internal.ParseFileConfig(dbFile, dbFilePath, f)
+	if err != nil {
+		errors.ErrFileParse(dbFilePath)
+		os.Exit(1)
+	}
+	fmt.Println(c)
 	l, err := readline.NewEx(&readline.Config{
 		Prompt:          "\033[31m»\033[0m ",
 		HistoryFile:     "/tmp/readline.tmp",

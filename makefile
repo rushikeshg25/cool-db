@@ -1,3 +1,4 @@
+# export PATH=$PATH:/bin
 BUILD_TIME := $(shell date -u '+%Y-%m-%d %H:%M:%S')
 VERSION := 0.1.0
 
