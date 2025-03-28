@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/rushikeshg25/coolDb/server"
 	"github.com/spf13/cobra"
 )
 
@@ -12,14 +13,13 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(VersionCmd)
-	rootCmd.AddCommand(RunCmd)
+	rootCmd.AddCommand(startCmd)
 }
 
 var rootCmd = &cobra.Command{
 	Use:   "cool",
-	Short: "cooldb is a SQLite based database for storing cool stuff.",
-	Long:  `cooldb is a SQLite based database for storing cool stuff built with Go available at https://github.com/rushikeshg25/cool-db.`,
+	Short: "cooldb is a SQL based database for storing cool stuff.",
+	Long:  `cooldb is a SQL based database for storing cool stuff built with Go available at https://github.com/rushikeshg25/cool-db.`,
 	Run:   nil,
 }
 
@@ -28,4 +28,13 @@ func Execute() {
 		log.Fatalf("Error executing command:%v", err)
 		os.Exit(1)
 	}
+}
+
+var startCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Starts CoolDB server",
+	Long:  `Starts CoolDB server`,
+	Run: func(cmd *cobra.Command, args []string) {
+		server.Start()
+	},
 }
