@@ -1,6 +1,6 @@
 ## Cooldb
 
-SQLite3 based database for storing cool stuff.
+SQL database for storing cool stuff.
 
 ## Todo
 
