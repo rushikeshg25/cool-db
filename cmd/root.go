@@ -15,7 +15,7 @@ var (
 )
 
 func init() {
-	startCmd.Flags().IntVarP(&port, "port", "p", 5432, "Port to run CoolDB server on")
+	startCmd.Flags().IntVarP(&port, "port", "p", 3040, "Port to run CoolDB server on")
 	startCmd.Flags().StringVarP(&host, "host", "", "localhost", "Host to run CoolDB server on")
 	rootCmd.AddCommand(startCmd)
 }
@@ -24,7 +24,9 @@ var rootCmd = &cobra.Command{
 	Use:   "cool",
 	Short: "cooldb is a SQL-based database for storing cool stuff.",
 	Long:  `cooldb is a SQL-based database for storing cool stuff, built with Go. Available at https://github.com/rushikeshg25/cool-db.`,
-	Run:   nil,
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Help()
+	},
 }
 
 func Execute() {
