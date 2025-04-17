@@ -13,6 +13,7 @@ import (
 type CoreServer struct {
 	Host    string
 	Port    int
+	WAL     bool
 	f       *os.File
 	clients *clientManager
 }
@@ -21,10 +22,11 @@ type CoreServerGRPC struct {
 	wire.UnimplementedWireServiceServer
 }
 
-func NewCoreServer(host string, port int, f *os.File) *CoreServer {
+func NewCoreServer(host string, port int, WAL bool, f *os.File) *CoreServer {
 	return &CoreServer{
 		Host:    host,
 		Port:    port,
+		WAL:     WAL,
 		clients: newClientManager(),
 		f:       f,
 	}

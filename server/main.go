@@ -13,13 +13,20 @@ import (
 	"github.com/rushikeshg25/coolDb/internal/core"
 )
 
-func Start(Host string, Port int) {
+func Start(Host string, Port int, WALoption string) {
 	printBanner()
 	if Host == "" {
 		Host = "localhost"
 	}
 	if Port == 0 {
 		Port = 3040
+	}
+
+	WAL := false
+	if WALoption == "true" {
+		WAL = true
+	} else if WALoption == "false" {
+		WAL = false
 	}
 
 	homeDir, err := os.UserHomeDir()
@@ -70,11 +77,11 @@ func Start(Host string, Port int) {
 
 func printBanner() {
 	fmt.Print(`
- ██████╗ ██████╗  ██████╗ ██╗     ██████╗ ██████╗ 
+ ██████╗ ██████╗  ██████╗ ██╗     ██████╗ ██████╗
 ██╔════╝██╔═══██╗██╔═══██╗██║     ██╔══██╗██╔══██╗
 ██║     ██║   ██║██║   ██║██║     ██║  ██║██████╔╝
 ██║     ██║   ██║██║   ██║██║     ██║  ██║██╔══██╗
 ╚██████╗╚██████╔╝╚██████╔╝███████╗██████╔╝██████╔╝
- ╚═════╝ ╚═════╝  ╚═════╝ ╚══════╝╚═════╝ ╚═════╝ 
+ ╚═════╝ ╚═════╝  ╚═════╝ ╚══════╝╚═════╝ ╚═════╝
 `)
 }

@@ -12,11 +12,13 @@ var (
 	Version = "0.1.0"
 	port    int
 	host    string
+	WAL     string
 )
 
 func init() {
 	startCmd.Flags().IntVarP(&port, "port", "p", 3040, "Port to run CoolDB server on")
 	startCmd.Flags().StringVarP(&host, "host", "", "localhost", "Host to run CoolDB server on")
+	startCmd.Flags().StringVarP(&WAL, "wal", "w", "false", "Enable Work ahead logs")
 	rootCmd.AddCommand(startCmd)
 }
 
@@ -41,6 +43,6 @@ var startCmd = &cobra.Command{
 	Short: "Starts CoolDB server",
 	Long:  `Starts CoolDB server`,
 	Run: func(cmd *cobra.Command, args []string) {
-		server.Start(host, port)
+		server.Start(host, port, WAL)
 	},
 }
