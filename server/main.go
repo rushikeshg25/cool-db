@@ -51,7 +51,7 @@ func Start(Host string, Port int, WALoption string) {
 	}
 	defer dirFD.Close()
 
-	server := core.NewCoreServer(Host, Port, dirFD)
+	server := core.NewCoreServer(Host, Port, WAL, dirFD)
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 
