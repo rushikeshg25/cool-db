@@ -4,20 +4,23 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/spf13/cobra"
 )
 
-func executeCommand(t *testing.T, args ...string) (string, error) {
+func executeCommand(t *testing.T, rootCommandFactory func() *cobra.Command, args ...string) (string, error) {
 	t.Helper()
 	var output bytes.Buffer
-	rootCmd.SetOut(&output)
-	rootCmd.SetErr(&output)
-	rootCmd.SetArgs(args)
-	err := rootCmd.Execute()
+	rootCommand := rootCommandFactory()
+	rootCommand.SetOut(&output)
+	rootCommand.SetErr(&output)
+	rootCommand.SetArgs(args)
+	err := rootCommand.Execute()
 	return output.String(), err
 }
 
 func TestRootShowsHelp(t *testing.T) {
-	output, err := executeCommand(t)
+	output, err := executeCommand(t, NewRootCommand)
 	if err != nil {
 		t.Fatalf("root command error = %v", err)
 	}
@@ -33,7 +36,7 @@ func TestVersionCommand(t *testing.T) {
 	Version, BuildTime = "1.2.3", "test-time"
 	t.Cleanup(func() { Version, BuildTime = oldVersion, oldBuildTime })
 
-	output, err := executeCommand(t, "version")
+	output, err := executeCommand(t, NewRootCommand, "version")
 	if err != nil {
 		t.Fatalf("version command error = %v", err)
 	}
@@ -43,7 +46,7 @@ func TestVersionCommand(t *testing.T) {
 }
 
 func TestStartRejectsWAL(t *testing.T) {
-	output, err := executeCommand(t, "start", "--wal")
+	output, err := executeCommand(t, NewRootCommand, "start", "--wal")
 	if err == nil {
 		t.Fatal("start --wal error = nil")
 	}
@@ -52,5 +55,23 @@ func TestStartRejectsWAL(t *testing.T) {
 	}
 	if !strings.Contains(output, "Usage:") {
 		t.Errorf("output = %q, want command usage", output)
+	}
+}
+
+func TestStartPassesConfigurationToServer(t *testing.T) {
+	var gotHost, gotPath string
+	var gotPort int
+	factory := func() *cobra.Command {
+		return newRootCommand(func(host string, port int, databasePath string) error {
+			gotHost, gotPort, gotPath = host, port, databasePath
+			return nil
+		})
+	}
+
+	if _, err := executeCommand(t, factory, "start", "--host", "127.0.0.1", "--port", "4040", "--db", "test.cooldb"); err != nil {
+		t.Fatalf("start command error = %v", err)
+	}
+	if gotHost != "127.0.0.1" || gotPort != 4040 || gotPath != "test.cooldb" {
+		t.Errorf("server config = (%q, %d, %q)", gotHost, gotPort, gotPath)
 	}
 }
