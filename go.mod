@@ -3,6 +3,7 @@ module github.com/rushikeshg25/coolDb
 go 1.23.5
 
 require (
+	github.com/chzyer/readline v1.5.1
 	github.com/rushikeshg25/cool-wire v0.0.0-20250328192440-ca2bfbadcdc3
 	github.com/spf13/cobra v1.9.1
 	google.golang.org/grpc v1.71.0
