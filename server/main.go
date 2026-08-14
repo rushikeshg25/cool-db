@@ -3,33 +3,42 @@ package server
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
-	"os/signal"
 	"path/filepath"
-	"syscall"
 
 	"github.com/rushikeshg25/coolDb/internal/core"
 	"github.com/rushikeshg25/coolDb/internal/database"
 )
 
-func Start(host string, port int, databasePath string) error {
-	printBanner()
-	if host == "" {
-		host = "localhost"
+type Config struct {
+	Host         string
+	Port         int
+	DatabasePath string
+	Output       io.Writer
+}
+
+func Run(ctx context.Context, config Config) error {
+	if config.Output == nil {
+		config.Output = os.Stdout
 	}
-	if port == 0 {
-		port = 3040
+	printBanner(config.Output)
+	if config.Host == "" {
+		config.Host = "localhost"
+	}
+	if config.Port == 0 {
+		config.Port = 3040
 	}
 
-	if databasePath == "" {
+	if config.DatabasePath == "" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
 			return fmt.Errorf("get home directory: %w", err)
 		}
-		databasePath = filepath.Join(homeDir, "cooldb", "default.cooldb")
+		config.DatabasePath = filepath.Join(homeDir, "cooldb", "default.cooldb")
 	}
-	databasePath, err := filepath.Abs(databasePath)
+	databasePath, err := filepath.Abs(config.DatabasePath)
 	if err != nil {
 		return fmt.Errorf("resolve database path: %w", err)
 	}
@@ -38,11 +47,9 @@ func Start(host string, port int, databasePath string) error {
 		return err
 	}
 
-	coreServer := core.NewCoreServer(host, port, engine)
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
+	coreServer := core.NewCoreServer(config.Host, config.Port, engine)
 
-	slog.Info("Server starting", "host", host, "port", port, "database", databasePath)
+	slog.Info("Server starting", "host", config.Host, "port", config.Port, "database", databasePath)
 	if err := core.BindAndListen(ctx, coreServer); err != nil {
 		return err
 	}
@@ -50,8 +57,8 @@ func Start(host string, port int, databasePath string) error {
 	return nil
 }
 
-func printBanner() {
-	fmt.Print(`
+func printBanner(writer io.Writer) {
+	fmt.Fprint(writer, `
  ██████╗ ██████╗  ██████╗ ██╗     ██████╗ ██████╗
 ██╔════╝██╔═══██╗██╔═══██╗██║     ██╔══██╗██╔══██╗
 ██║     ██║   ██║██║   ██║██║     ██║  ██║██████╔╝

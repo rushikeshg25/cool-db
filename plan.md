@@ -8,10 +8,10 @@ This document outlines the phased development plan for **Cooldb**, focusing on t
 *Focus: Establish core communication and basic storage mechanics.*
 
 - [x] **Core gRPC Server**: Basic implementation of the gRPC service layer using `cool-wire`.
-- [x] **Interactive CLI**: Initial `cool-cli` with command execution and loop.
-- [x] **File Management**: Basic reading and writing to the `cooldb/` home directory.
-- [/] **Query Pipeline**: Implementing the flow from CLI → gRPC → Core Engine → Storage.
-- [ ] **Basic Query Validation**: Initial syntax checking for SQL-like commands.
+- [x] **Unified CLI**: `cool server`, `cool shell`, and `cool exec` in one binary.
+- [x] **Persistent File Management**: Atomic database snapshots with restart persistence.
+- [x] **Query Pipeline**: CLI → gRPC → Core Engine → persistent storage.
+- [x] **Basic Query Validation**: Parsing, type checking, and core constraints for the v0.1 SQL subset.
 
 ---
 
