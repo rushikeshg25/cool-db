@@ -6,7 +6,10 @@ build:
 	@go build -ldflags="-X github.com/rushikeshg25/coolDb/cmd.Version=$(VERSION) -X 'github.com/rushikeshg25/coolDb/cmd.BuildTime=$(BUILD_TIME)'" -o bin/cool
 
 run: build
-	@./bin/cool
+	@./bin/cool server
+
+shell: build
+	@./bin/cool shell
 
 test:
 	@echo "Running tests..."
@@ -20,4 +23,4 @@ clean:
 	@echo "Removing binary..."
 	@rm -f bin/cool
 
-.PHONY: build run clean test tidy
+.PHONY: build run shell clean test tidy
