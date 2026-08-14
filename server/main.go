@@ -7,72 +7,47 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sync"
 	"syscall"
 
 	"github.com/rushikeshg25/coolDb/internal/core"
+	"github.com/rushikeshg25/coolDb/internal/database"
 )
 
-func Start(Host string, Port int, WALoption string) {
+func Start(host string, port int, databasePath string) error {
 	printBanner()
-	if Host == "" {
-		Host = "localhost"
+	if host == "" {
+		host = "localhost"
 	}
-	if Port == 0 {
-		Port = 3040
-	}
-
-	WAL := false
-	if WALoption == "true" {
-		WAL = true
-	} else if WALoption == "false" {
-		WAL = false
+	if port == 0 {
+		port = 3040
 	}
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		slog.Error("Error getting home directory", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-
-	coolDir := filepath.Join(homeDir, "cooldb")
-	if _, err := os.Stat(coolDir); os.IsNotExist(err) {
-		err = os.Mkdir(coolDir, 0755)
+	if databasePath == "" {
+		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			slog.Error("Error creating directory", slog.String("error", err.Error()))
-			os.Exit(1)
+			return fmt.Errorf("get home directory: %w", err)
 		}
+		databasePath = filepath.Join(homeDir, "cooldb", "default.cooldb")
 	}
-
-	dirFD, err := os.Open(coolDir)
+	databasePath, err := filepath.Abs(databasePath)
 	if err != nil {
-		slog.Error("Error opening directory", slog.String("error", err.Error()))
-		os.Exit(1)
+		return fmt.Errorf("resolve database path: %w", err)
 	}
-	defer dirFD.Close()
+	engine, err := database.Open(databasePath)
+	if err != nil {
+		return err
+	}
 
-	server := core.NewCoreServer(Host, Port, WAL, dirFD)
-	ctx, cancel := context.WithCancel(context.Background())
-	var wg sync.WaitGroup
+	coreServer := core.NewCoreServer(host, port, engine)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := core.BindAndListen(ctx, server); err != nil {
-			slog.Error("Server encountered an error", slog.String("error", err.Error()))
-		}
-	}()
-
-	slog.Info("Server started", slog.String("host", server.Host), slog.Int("port", server.Port))
-
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-	<-sigChan
-
-	slog.Info("Shutting down server...")
-	cancel()
-	wg.Wait()
+	slog.Info("Server starting", "host", host, "port", port, "database", databasePath)
+	if err := core.BindAndListen(ctx, coreServer); err != nil {
+		return err
+	}
 	slog.Info("Server shut down gracefully")
+	return nil
 }
 
 func printBanner() {
