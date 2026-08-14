@@ -3,14 +3,14 @@ BUILD_TIME := $(shell date -u '+%Y-%m-%d %H:%M:%S')
 VERSION := 0.1.0
 
 build:
-	@go build -ldflags="-X main.Version=$(VERSION) -X 'main.BuildTime=$(BUILD_TIME)'" -o bin/cool
+	@go build -ldflags="-X github.com/rushikeshg25/coolDb/cmd.Version=$(VERSION) -X 'github.com/rushikeshg25/coolDb/cmd.BuildTime=$(BUILD_TIME)'" -o bin/cool
 
 run: build
 	@./bin/cool
 
 test:
 	@echo "Running tests..."
-	@go test ./tests/...
+	@go test ./...
 
 tidy:
 	@echo "Cleaning..."

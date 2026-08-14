@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
 	"os"
 
 	"github.com/rushikeshg25/coolDb/server"
@@ -9,17 +9,20 @@ import (
 )
 
 var (
-	Version = "0.1.0"
-	port    int
-	host    string
-	WAL     string
+	Version      = "0.1.0"
+	BuildTime    = "unknown"
+	port         int
+	host         string
+	databasePath string
+	wal          bool
 )
 
 func init() {
 	startCmd.Flags().IntVarP(&port, "port", "p", 3040, "Port to run CoolDB server on")
 	startCmd.Flags().StringVarP(&host, "host", "", "localhost", "Host to run CoolDB server on")
-	startCmd.Flags().StringVarP(&WAL, "wal", "w", "false", "Enable Work ahead logs")
-	rootCmd.AddCommand(startCmd)
+	startCmd.Flags().StringVar(&databasePath, "db", "", "Database file (default: ~/cooldb/default.cooldb)")
+	startCmd.Flags().BoolVarP(&wal, "wal", "w", false, "Enable write-ahead logging (not available in v0.1)")
+	rootCmd.AddCommand(startCmd, versionCmd)
 }
 
 var rootCmd = &cobra.Command{
@@ -33,7 +36,6 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatalf("Error executing command: %v", err)
 		os.Exit(1)
 	}
 }
@@ -42,7 +44,20 @@ var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Starts CoolDB server",
 	Long:  `Starts CoolDB server`,
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if wal {
+			return fmt.Errorf("write-ahead logging is not implemented yet; omit --wal")
+		}
+		return server.Start(host, port, databasePath)
+	},
+}
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the CoolDB version",
+	Args:  cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
-		server.Start(host, port, WAL)
+		fmt.Fprintf(cmd.OutOrStdout(), "CoolDB %s (built %s)\n", Version, BuildTime)
 	},
 }
