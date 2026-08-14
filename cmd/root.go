@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/rushikeshg25/coolDb/server"
 	"github.com/spf13/cobra"
@@ -13,14 +16,14 @@ var (
 	BuildTime = "unknown"
 )
 
-type serverStarter func(host string, port int, databasePath string) error
+type serverRunner func(context.Context, server.Config) error
 
 // NewRootCommand constructs an isolated command tree for the CoolDB binary.
 func NewRootCommand() *cobra.Command {
-	return newRootCommand(server.Start)
+	return newRootCommand(server.Run)
 }
 
-func newRootCommand(startServer serverStarter) *cobra.Command {
+func newRootCommand(runServer serverRunner) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "cool",
 		Short: "cooldb is a SQL-based database for storing cool stuff.",
@@ -30,11 +33,11 @@ func newRootCommand(startServer serverStarter) *cobra.Command {
 			return command.Help()
 		},
 	}
-	root.AddCommand(newStartCommand(startServer), newVersionCommand())
+	root.AddCommand(newStartCommand(runServer), newVersionCommand())
 	return root
 }
 
-func newStartCommand(startServer serverStarter) *cobra.Command {
+func newStartCommand(runServer serverRunner) *cobra.Command {
 	var (
 		port         int
 		host         string
@@ -50,7 +53,14 @@ func newStartCommand(startServer serverStarter) *cobra.Command {
 			if wal {
 				return fmt.Errorf("write-ahead logging is not implemented yet; omit --wal")
 			}
-			return startServer(host, port, databasePath)
+			ctx, stop := signal.NotifyContext(command.Context(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
+			return runServer(ctx, server.Config{
+				Host:         host,
+				Port:         port,
+				DatabasePath: databasePath,
+				Output:       command.OutOrStdout(),
+			})
 		},
 	}
 	command.Flags().IntVarP(&port, "port", "p", 3040, "Port to run CoolDB server on")

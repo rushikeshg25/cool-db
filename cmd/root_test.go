@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"strings"
 	"testing"
 
+	"github.com/rushikeshg25/coolDb/server"
 	"github.com/spf13/cobra"
 )
 
@@ -62,8 +64,8 @@ func TestStartPassesConfigurationToServer(t *testing.T) {
 	var gotHost, gotPath string
 	var gotPort int
 	factory := func() *cobra.Command {
-		return newRootCommand(func(host string, port int, databasePath string) error {
-			gotHost, gotPort, gotPath = host, port, databasePath
+		return newRootCommand(func(ctx context.Context, config server.Config) error {
+			gotHost, gotPort, gotPath = config.Host, config.Port, config.DatabasePath
 			return nil
 		})
 	}
