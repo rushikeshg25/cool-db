@@ -4,27 +4,27 @@
 [![Go Version](https://img.shields.io/badge/Go-1.23.5-blue.svg)](https://golang.org)
 [![Next.js](https://img.shields.io/badge/Next.js-v15-black.svg)](https://nextjs.org)
 
-**Cooldb** is a full-stack database ecosystem featuring a high-performance gRPC server, a modern web dashboard, and a robust CLI client. It is designed for developers who need a lightweight, extensible, and "cool" way to manage their data.
+**Cooldb** is a small SQL database with a persistent Go engine, a gRPC server, and a unified command-line client.
 
 ## 🚀 Key Features
 
 - **gRPC Infrastructure**: Built on a high-performance communication layer via `cool-wire`.
-- **Integrated Dashboard**: Real-time data visualization built with Next.js.
-- **Interactive CLI**: Rich terminal experience with readline support.
-- **SQL-like Syntax**: Intuitive query interface for data management.
+- **Persistent Storage**: Typed tables are saved atomically and survive server restarts.
+- **Unified CLI**: Run the server, open an interactive shell, or execute scripted queries with one binary.
+- **SQL Syntax**: Supports `CREATE TABLE`, `DROP TABLE`, `INSERT`, `SELECT`, `UPDATE`, and `DELETE`.
 - **Extensible Architecture**: Clean internal structure for adding custom storage engines or protocols.
 
 ## 🏗 Architecture
 
-Cooldb is split into three core components:
+Cooldb ships as one `cool` binary with three commands:
 
 | Component | Description | Technology |
 | :--- | :--- | :--- |
-| **Server** | Core engine handling query execution and storage. | Go, gRPC |
-| **CLI Client** | Terminal-based interactive management tool. | Go, Cobra, Readline |
-| **UI Dashboard** | Web interface for visual database administration. | Next.js, Tailwind CSS |
+| **`cool server`** | Runs the database engine and gRPC transport. | Go, gRPC |
+| **`cool shell`** | Opens an interactive SQL terminal. | Go, Cobra, Readline |
+| **`cool exec`** | Executes one query for scripts and CI. | Go, Cobra |
 
-For more details on the technical roadmap and future plans, see [plan.md](file:///Users/rushikeshghotekar/Projects/cool-db/plan.md).
+The experimental dashboard remains in `ui/`. For future database work, see [plan.md](plan.md).
 
 ## 🚦 Getting Started
 
@@ -34,13 +34,40 @@ For more details on the technical roadmap and future plans, see [plan.md](file:/
 - [Node.js](https://nodejs.org/) (for the UI)
 - [Makefile](https://www.gnu.org/software/make/)
 
-### Running the Server
+### Build and run the server
 
 ```bash
-make run
+make build
+./bin/cool server --db ./example.cooldb
 ```
 
-### Launching the Dashboard
+`cool start` remains an alias for `cool server` during the CLI migration.
+
+### Open the interactive shell
+
+```bash
+./bin/cool shell --host localhost --port 3040
+```
+
+Exit with `quit`, `exit`, `.quit`, `.exit`, or `\q`.
+
+### Execute a scripted query
+
+Pass the query as an argument:
+
+```bash
+./bin/cool exec "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)"
+./bin/cool exec "INSERT INTO users VALUES (1, 'Ada')"
+./bin/cool exec "SELECT * FROM users"
+```
+
+Or pipe a query through standard input:
+
+```bash
+printf 'SELECT * FROM users;\n' | ./bin/cool exec
+```
+
+### Launch the experimental dashboard
 
 ```bash
 cd ui
@@ -48,24 +75,19 @@ npm install
 npm run dev
 ```
 
-### Using the CLI
-
-Clone and build the [cool-cli](file:///Users/rushikeshghotekar/Projects/cool-cli/README.md) repository:
-
-```bash
-# In the cool-cli directory
-make build
-./bin/cool-cli
-```
-
 ## 🛠 Development
 
 ### Directory Structure
 
-- `cmd/`: Command-line entry points for the server.
-- `internal/`: Core logic including storage, core engine, and error handling.
+- `cmd/`: Unified `server`, `shell`, and `exec` commands.
+- `internal/client/`: Transport-independent CoolDB client.
+- `internal/shell/`: Interactive shell and terminal adapter.
+- `internal/database/`: SQL parsing, validation, execution, and persistence.
+- `internal/core/`: gRPC server adapter.
 - `server/`: Server initialization and gRPC setup.
-- `ui/`: Next.js application source code.
+- `ui/`: Experimental Next.js application.
+
+The former `cool-cli` repository is no longer required for new development. It can remain available temporarily for users of the standalone binary.
 
 ---
 Built with ❤️ by [rushikeshg25](https://github.com/rushikeshg25).
