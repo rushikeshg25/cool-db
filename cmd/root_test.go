@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rushikeshg25/coolDb/internal/client"
 	"github.com/rushikeshg25/coolDb/server"
 	"github.com/spf13/cobra"
 )
@@ -26,7 +27,7 @@ func TestRootShowsHelp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("root command error = %v", err)
 	}
-	for _, expected := range []string{"cooldb is a SQL-based database", "start", "version"} {
+	for _, expected := range []string{"cooldb is a SQL-based database", "server", "shell", "exec", "version"} {
 		if !strings.Contains(output, expected) {
 			t.Errorf("root output = %q, want it to contain %q", output, expected)
 		}
@@ -48,15 +49,12 @@ func TestVersionCommand(t *testing.T) {
 }
 
 func TestStartRejectsWAL(t *testing.T) {
-	output, err := executeCommand(t, NewRootCommand, "start", "--wal")
+	_, err := executeCommand(t, NewRootCommand, "start", "--wal")
 	if err == nil {
 		t.Fatal("start --wal error = nil")
 	}
 	if !strings.Contains(err.Error(), "write-ahead logging is not implemented") {
 		t.Errorf("error = %q, want WAL guidance", err)
-	}
-	if !strings.Contains(output, "Usage:") {
-		t.Errorf("output = %q, want command usage", output)
 	}
 }
 
@@ -64,14 +62,21 @@ func TestStartPassesConfigurationToServer(t *testing.T) {
 	var gotHost, gotPath string
 	var gotPort int
 	factory := func() *cobra.Command {
-		return newRootCommand(func(ctx context.Context, config server.Config) error {
-			gotHost, gotPort, gotPath = config.Host, config.Port, config.DatabasePath
-			return nil
+		return newRootCommand(dependencies{
+			runServer: func(ctx context.Context, config server.Config) error {
+				gotHost, gotPort, gotPath = config.Host, config.Port, config.DatabasePath
+				return nil
+			},
+			connectClient: func(context.Context, client.Config) (managedClient, error) {
+				return nil, nil
+			},
 		})
 	}
 
-	if _, err := executeCommand(t, factory, "start", "--host", "127.0.0.1", "--port", "4040", "--db", "test.cooldb"); err != nil {
-		t.Fatalf("start command error = %v", err)
+	for _, commandName := range []string{"server", "start"} {
+		if _, err := executeCommand(t, factory, commandName, "--host", "127.0.0.1", "--port", "4040", "--db", "test.cooldb"); err != nil {
+			t.Fatalf("%s command error = %v", commandName, err)
+		}
 	}
 	if gotHost != "127.0.0.1" || gotPort != 4040 || gotPath != "test.cooldb" {
 		t.Errorf("server config = (%q, %d, %q)", gotHost, gotPort, gotPath)

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 
+	"github.com/rushikeshg25/coolDb/internal/client"
+	"github.com/rushikeshg25/coolDb/internal/shell"
 	"github.com/rushikeshg25/coolDb/server"
 	"github.com/spf13/cobra"
 )
@@ -18,56 +18,61 @@ var (
 
 type serverRunner func(context.Context, server.Config) error
 
-// NewRootCommand constructs an isolated command tree for the CoolDB binary.
-func NewRootCommand() *cobra.Command {
-	return newRootCommand(server.Run)
+type managedClient interface {
+	shell.Executor
+	Close() error
 }
 
-func newRootCommand(runServer serverRunner) *cobra.Command {
+type clientConnector func(context.Context, client.Config) (managedClient, error)
+
+type interactiveInput interface {
+	shell.LineReader
+	Close() error
+}
+
+type inputFactory func(prompt string) (interactiveInput, error)
+
+type dependencies struct {
+	runServer     serverRunner
+	connectClient clientConnector
+	newInput      inputFactory
+}
+
+func productionDependencies() dependencies {
+	return dependencies{
+		runServer: server.Run,
+		connectClient: func(ctx context.Context, config client.Config) (managedClient, error) {
+			return client.Connect(ctx, config)
+		},
+		newInput: func(prompt string) (interactiveInput, error) {
+			return shell.NewReadline(prompt)
+		},
+	}
+}
+
+// NewRootCommand constructs an isolated command tree for the CoolDB binary.
+func NewRootCommand() *cobra.Command {
+	return newRootCommand(productionDependencies())
+}
+
+func newRootCommand(deps dependencies) *cobra.Command {
 	root := &cobra.Command{
-		Use:   "cool",
-		Short: "cooldb is a SQL-based database for storing cool stuff.",
-		Long:  `cooldb is a SQL-based database for storing cool stuff, built with Go. Available at https://github.com/rushikeshg25/cool-db.`,
-		Args:  cobra.NoArgs,
+		Use:          "cool",
+		Short:        "cooldb is a SQL-based database for storing cool stuff.",
+		Long:         `cooldb is a SQL-based database for storing cool stuff, built with Go. Available at https://github.com/rushikeshg25/cool-db.`,
+		Args:         cobra.NoArgs,
+		SilenceUsage: true,
 		RunE: func(command *cobra.Command, args []string) error {
 			return command.Help()
 		},
 	}
-	root.AddCommand(newStartCommand(runServer), newVersionCommand())
-	return root
-}
-
-func newStartCommand(runServer serverRunner) *cobra.Command {
-	var (
-		port         int
-		host         string
-		databasePath string
-		wal          bool
+	root.AddCommand(
+		newServerCommand(deps.runServer),
+		newShellCommand(deps.connectClient, deps.newInput),
+		newExecCommand(deps.connectClient),
+		newVersionCommand(),
 	)
-	command := &cobra.Command{
-		Use:   "start",
-		Short: "Starts CoolDB server",
-		Long:  `Starts CoolDB server`,
-		Args:  cobra.NoArgs,
-		RunE: func(command *cobra.Command, args []string) error {
-			if wal {
-				return fmt.Errorf("write-ahead logging is not implemented yet; omit --wal")
-			}
-			ctx, stop := signal.NotifyContext(command.Context(), os.Interrupt, syscall.SIGTERM)
-			defer stop()
-			return runServer(ctx, server.Config{
-				Host:         host,
-				Port:         port,
-				DatabasePath: databasePath,
-				Output:       command.OutOrStdout(),
-			})
-		},
-	}
-	command.Flags().IntVarP(&port, "port", "p", 3040, "Port to run CoolDB server on")
-	command.Flags().StringVar(&host, "host", "localhost", "Host to run CoolDB server on")
-	command.Flags().StringVar(&databasePath, "db", "", "Database file (default: ~/cooldb/default.cooldb)")
-	command.Flags().BoolVarP(&wal, "wal", "w", false, "Enable write-ahead logging (not available in v0.1)")
-	return command
+	return root
 }
 
 func newVersionCommand() *cobra.Command {
