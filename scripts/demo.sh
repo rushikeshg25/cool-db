@@ -26,7 +26,15 @@ cleanup() {
   kill "$server_pid" 2>/dev/null || true
   wait "$server_pid" 2>/dev/null || true
 }
-trap cleanup EXIT INT TERM
+
+handle_signal() {
+  trap - EXIT INT TERM
+  cleanup
+  exit 0
+}
+
+trap cleanup EXIT
+trap handle_signal INT TERM
 
 printf '\nCoolDB local demo\n'
 printf '  Studio:  http://localhost:%s/?variant=A\n' "$ui_port"
