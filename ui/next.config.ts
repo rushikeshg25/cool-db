@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Keep framework-generated agent instructions out of the repository.
+  agentRules: false,
 };
 
 export default nextConfig;
