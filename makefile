@@ -11,6 +11,9 @@ run: build
 shell: build
 	@./bin/cool shell
 
+demo:
+	@./scripts/demo.sh
+
 test:
 	@echo "Running tests..."
 	@go test ./...
@@ -23,4 +26,4 @@ clean:
 	@echo "Removing binary..."
 	@rm -f bin/cool
 
-.PHONY: build run shell clean test tidy
+.PHONY: build run shell demo clean test tidy

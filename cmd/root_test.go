@@ -60,11 +60,11 @@ func TestStartRejectsWAL(t *testing.T) {
 
 func TestStartPassesConfigurationToServer(t *testing.T) {
 	var gotHost, gotPath string
-	var gotPort int
+	var gotPort, gotHTTPPort int
 	factory := func() *cobra.Command {
 		return newRootCommand(dependencies{
 			runServer: func(ctx context.Context, config server.Config) error {
-				gotHost, gotPort, gotPath = config.Host, config.Port, config.DatabasePath
+				gotHost, gotPort, gotHTTPPort, gotPath = config.Host, config.Port, config.HTTPPort, config.DatabasePath
 				return nil
 			},
 			connectClient: func(context.Context, client.Config) (managedClient, error) {
@@ -74,11 +74,11 @@ func TestStartPassesConfigurationToServer(t *testing.T) {
 	}
 
 	for _, commandName := range []string{"server", "start"} {
-		if _, err := executeCommand(t, factory, commandName, "--host", "127.0.0.1", "--port", "4040", "--db", "test.cooldb"); err != nil {
+		if _, err := executeCommand(t, factory, commandName, "--host", "127.0.0.1", "--port", "4040", "--http-port", "4041", "--db", "test.cooldb"); err != nil {
 			t.Fatalf("%s command error = %v", commandName, err)
 		}
 	}
-	if gotHost != "127.0.0.1" || gotPort != 4040 || gotPath != "test.cooldb" {
-		t.Errorf("server config = (%q, %d, %q)", gotHost, gotPort, gotPath)
+	if gotHost != "127.0.0.1" || gotPort != 4040 || gotHTTPPort != 4041 || gotPath != "test.cooldb" {
+		t.Errorf("server config = (%q, %d, %d, %q)", gotHost, gotPort, gotHTTPPort, gotPath)
 	}
 }

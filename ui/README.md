@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CoolDB Local Studio
 
-## Getting Started
+This directory contains a local-only query workbench and a throwaway dashboard design prototype. It is intended for demos, not deployment.
 
-First, run the development server:
+## Run the complete demo
+
+From the repository root:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+make demo
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This command builds `cool`, starts the gRPC server and opt-in HTTP demo bridge, installs UI dependencies when needed, and launches Next.js at [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The scratch database is stored at `.cooldb-demo/demo.cooldb` and is ignored by Git. Override it with `COOLDB_DEMO_DB` when needed.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Dashboard variants
 
-## Learn More
+The root route contains three deliberately different prototypes:
 
-To learn more about Next.js, take a look at the following resources:
+- `?variant=A` — Command center: dense database explorer and operational workspace.
+- `?variant=B` — Query notebook: a calmer, document-oriented exploration flow.
+- `?variant=C` — Terminal wall: a keyboard-first, system-console presentation.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+In development, use the floating arrow switcher or the keyboard arrow keys. The switcher is excluded from production builds.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Run the processes separately
 
-## Deploy on Vercel
+Start CoolDB with the demo bridge:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+make build
+./bin/cool server --db ./.cooldb-demo/demo.cooldb --http-port 3041
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Then start the UI:
+
+```bash
+cd ui
+npm install
+npm run dev
+```
+
+The Next.js route handlers proxy `/api/health` and `/api/query` to `http://127.0.0.1:3041`. Set `COOLDB_DEMO_API_URL` to override that address.
+
+## Safety
+
+The workbench can execute mutating SQL against the selected database. The HTTP bridge is disabled by default in normal server runs and should not be exposed publicly. Use a scratch database for demos.

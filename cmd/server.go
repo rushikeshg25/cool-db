@@ -13,6 +13,7 @@ import (
 func newServerCommand(runServer serverRunner) *cobra.Command {
 	var (
 		port         int
+		httpPort     int
 		host         string
 		databasePath string
 		wal          bool
@@ -31,12 +32,14 @@ func newServerCommand(runServer serverRunner) *cobra.Command {
 			return runServer(ctx, server.Config{
 				Host:         host,
 				Port:         port,
+				HTTPPort:     httpPort,
 				DatabasePath: databasePath,
 				Output:       command.OutOrStdout(),
 			})
 		},
 	}
 	command.Flags().IntVarP(&port, "port", "p", 3040, "Port to run CoolDB server on")
+	command.Flags().IntVar(&httpPort, "http-port", 0, "Local demo HTTP port (0 disables the demo API)")
 	command.Flags().StringVar(&host, "host", "localhost", "Host to run CoolDB server on")
 	command.Flags().StringVar(&databasePath, "db", "", "Database file (default: ~/cooldb/default.cooldb)")
 	command.Flags().BoolVarP(&wal, "wal", "w", false, "Enable write-ahead logging (not available in v0.1)")

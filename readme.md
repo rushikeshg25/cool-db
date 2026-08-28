@@ -31,7 +31,7 @@ The experimental dashboard remains in `ui/`. For future database work, see [plan
 ### Prerequisites
 
 - [Go](https://go.dev/doc/install) (1.23.5 or higher)
-- [Node.js](https://nodejs.org/) (for the UI)
+- [Node.js](https://nodejs.org/) 20.9 or newer (for the local studio)
 - [Makefile](https://www.gnu.org/software/make/)
 
 ### Build and run the server
@@ -67,13 +67,17 @@ Or pipe a query through standard input:
 printf 'SELECT * FROM users;\n' | ./bin/cool exec
 ```
 
-### Launch the experimental dashboard
+### Launch the local demo studio
+
+Start CoolDB, its opt-in local HTTP bridge, and the Next.js studio with one command:
 
 ```bash
-cd ui
-npm install
-npm run dev
+make demo
 ```
+
+Open [http://localhost:3000/?variant=A](http://localhost:3000/?variant=A). Use the floating switcher or `?variant=A`, `B`, and `C` to compare the command-center, notebook, and terminal layouts.
+
+The demo writes to `.cooldb-demo/demo.cooldb`, which is ignored by Git. The HTTP query bridge is disabled during normal `cool server` runs; enable it explicitly with `--http-port 3041` when running the UI separately.
 
 ## 🛠 Development
 
@@ -85,7 +89,7 @@ npm run dev
 - `internal/database/`: SQL parsing, validation, execution, and persistence.
 - `internal/core/`: gRPC server adapter.
 - `server/`: Server initialization and gRPC setup.
-- `ui/`: Experimental Next.js application.
+- `ui/`: Local-only Next.js query studio and design prototype.
 
 The former `cool-cli` repository is no longer required for new development. It can remain available temporarily for users of the standalone binary.
 
