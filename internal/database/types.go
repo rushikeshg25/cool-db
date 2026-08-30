@@ -64,9 +64,11 @@ func (v Value) String() string {
 	}
 }
 
+// valuesEqual implements SQL three-valued logic: a comparison involving NULL
+// is UNKNOWN, which never satisfies a predicate. Use IS NULL to match NULLs.
 func valuesEqual(left, right Value) bool {
 	if left.Null || right.Null {
-		return left.Null && right.Null
+		return false
 	}
 	if left.Type != right.Type {
 		return false

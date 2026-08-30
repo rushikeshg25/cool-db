@@ -132,3 +132,61 @@ func TestResultFormat(t *testing.T) {
 		t.Errorf("mutation Format() = %q, want %q", got, want)
 	}
 }
+
+func TestNullComparisonsFollowThreeValuedLogic(t *testing.T) {
+	engine, err := Open(filepath.Join(t.TempDir(), "nulls.cooldb"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	setup := []string{
+		"CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT)",
+		"INSERT INTO people VALUES (1, 'Ada')",
+		"INSERT INTO people VALUES (2, NULL)",
+	}
+	for _, query := range setup {
+		if _, err := engine.Execute(query); err != nil {
+			t.Fatalf("Execute(%q) error = %v", query, err)
+		}
+	}
+
+	result, err := engine.Execute("SELECT id FROM people WHERE name = NULL")
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if got := len(result.Rows); got != 0 {
+		t.Errorf("`= NULL` matched %d row(s), want 0", got)
+	}
+
+	result, err = engine.Execute("SELECT id FROM people WHERE name = 'Ada'")
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if got := len(result.Rows); got != 1 {
+		t.Errorf("`= 'Ada'` matched %d row(s), want 1", got)
+	}
+}
+
+// UNIQUE ignores NULLs, and must keep ignoring them now that valuesEqual
+// reports NULL comparisons as unequal.
+func TestUniqueColumnAcceptsRepeatedNulls(t *testing.T) {
+	engine, err := Open(filepath.Join(t.TempDir(), "unique.cooldb"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	setup := []string{
+		"CREATE TABLE accounts (id INTEGER PRIMARY KEY, email TEXT UNIQUE)",
+		"INSERT INTO accounts VALUES (1, NULL)",
+		"INSERT INTO accounts VALUES (2, NULL)",
+	}
+	for _, query := range setup {
+		if _, err := engine.Execute(query); err != nil {
+			t.Fatalf("Execute(%q) error = %v", query, err)
+		}
+	}
+	if _, err := engine.Execute("INSERT INTO accounts VALUES (3, 'a@example.com')"); err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if _, err := engine.Execute("INSERT INTO accounts VALUES (4, 'a@example.com')"); err == nil {
+		t.Fatal("duplicate non-NULL value was accepted, want a constraint error")
+	}
+}
