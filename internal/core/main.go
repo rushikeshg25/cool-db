@@ -18,7 +18,6 @@ type CoreServer struct {
 	Host     string
 	Port     int
 	database *database.Engine
-	clients  *clientManager
 }
 
 type CoreServerGRPC struct {
@@ -35,7 +34,6 @@ func NewCoreServer(host string, port int, engine *database.Engine) *CoreServer {
 		Host:     host,
 		Port:     port,
 		database: engine,
-		clients:  newClientManager(),
 	}
 }
 
