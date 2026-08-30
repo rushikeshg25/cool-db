@@ -294,6 +294,14 @@ func buildMatcher(tbl *table, where *predicate) (func([]Value) bool, error) {
 	if err != nil {
 		return nil, err
 	}
+	switch where.op {
+	case predicateIsNull:
+		return func(row []Value) bool { return row[index].Null }, nil
+	case predicateIsNotNull:
+		return func(row []Value) bool { return !row[index].Null }, nil
+	}
+	// coerceLiteral would reject NULL against a NOT NULL column, so it is only
+	// reached for an equality predicate.
 	expected, err := coerceLiteral(where.value, column)
 	if err != nil {
 		return nil, err

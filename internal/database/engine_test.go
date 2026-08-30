@@ -190,3 +190,100 @@ func TestUniqueColumnAcceptsRepeatedNulls(t *testing.T) {
 		t.Fatal("duplicate non-NULL value was accepted, want a constraint error")
 	}
 }
+
+func TestIsNullPredicates(t *testing.T) {
+	engine, err := Open(filepath.Join(t.TempDir(), "isnull.cooldb"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	setup := []string{
+		"CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT)",
+		"INSERT INTO people VALUES (1, 'Ada')",
+		"INSERT INTO people VALUES (2, NULL)",
+		"INSERT INTO people VALUES (3, NULL)",
+	}
+	for _, query := range setup {
+		if _, err := engine.Execute(query); err != nil {
+			t.Fatalf("Execute(%q) error = %v", query, err)
+		}
+	}
+
+	cases := []struct {
+		query string
+		want  int
+	}{
+		{"SELECT id FROM people WHERE name IS NULL", 2},
+		{"SELECT id FROM people WHERE name IS NOT NULL", 1},
+	}
+	for _, testCase := range cases {
+		result, err := engine.Execute(testCase.query)
+		if err != nil {
+			t.Fatalf("Execute(%q) error = %v", testCase.query, err)
+		}
+		if got := len(result.Rows); got != testCase.want {
+			t.Errorf("%q matched %d row(s), want %d", testCase.query, got, testCase.want)
+		}
+	}
+
+	result, err := engine.Execute("UPDATE people SET name = 'unknown' WHERE name IS NULL")
+	if err != nil {
+		t.Fatalf("UPDATE error = %v", err)
+	}
+	if got, want := result.AffectedRows, 2; got != want {
+		t.Errorf("updated rows = %d, want %d", got, want)
+	}
+
+	result, err = engine.Execute("DELETE FROM people WHERE name IS NULL")
+	if err != nil {
+		t.Fatalf("DELETE error = %v", err)
+	}
+	if got, want := result.AffectedRows, 0; got != want {
+		t.Errorf("deleted rows = %d, want %d", got, want)
+	}
+}
+
+// IS NULL must work on a NOT NULL column too, where coercing a NULL literal
+// would have failed.
+func TestIsNullOnNotNullColumn(t *testing.T) {
+	engine, err := Open(filepath.Join(t.TempDir(), "notnull.cooldb"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	setup := []string{
+		"CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+		"INSERT INTO people VALUES (1, 'Ada')",
+	}
+	for _, query := range setup {
+		if _, err := engine.Execute(query); err != nil {
+			t.Fatalf("Execute(%q) error = %v", query, err)
+		}
+	}
+	result, err := engine.Execute("SELECT id FROM people WHERE name IS NULL")
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if got := len(result.Rows); got != 0 {
+		t.Errorf("IS NULL on a NOT NULL column matched %d row(s), want 0", got)
+	}
+}
+
+func TestIsNullSyntaxErrors(t *testing.T) {
+	engine, err := Open(filepath.Join(t.TempDir(), "syntax.cooldb"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	if _, err := engine.Execute("CREATE TABLE people (id INTEGER, name TEXT)"); err != nil {
+		t.Fatalf("CREATE error = %v", err)
+	}
+	for _, query := range []string{
+		"SELECT id FROM people WHERE name IS",
+		"SELECT id FROM people WHERE name IS NOT",
+		"SELECT id FROM people WHERE name IS 'Ada'",
+	} {
+		var databaseError *Error
+		_, err := engine.Execute(query)
+		if !errors.As(err, &databaseError) || databaseError.Code != CodeSyntax {
+			t.Errorf("Execute(%q) error = %v, want a syntax error", query, err)
+		}
+	}
+}

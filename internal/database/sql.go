@@ -59,8 +59,19 @@ type insertStatement struct {
 
 func (insertStatement) isStatement() {}
 
+// predicateOp is the comparison a WHERE clause applies. v0.1 supports one
+// predicate per statement.
+type predicateOp uint8
+
+const (
+	predicateEqual predicateOp = iota
+	predicateIsNull
+	predicateIsNotNull
+)
+
 type predicate struct {
 	column string
+	op     predicateOp
 	value  sqlLiteral
 }
 
@@ -408,6 +419,16 @@ func (p *parser) parseOptionalWhere() (*predicate, error) {
 	if err != nil {
 		return nil, err
 	}
+	if p.acceptKeyword("IS") {
+		op := predicateIsNull
+		if p.acceptKeyword("NOT") {
+			op = predicateIsNotNull
+		}
+		if err := p.expectKeyword("NULL"); err != nil {
+			return nil, err
+		}
+		return &predicate{column: column, op: op}, nil
+	}
 	if err := p.expectSymbol("="); err != nil {
 		return nil, err
 	}
@@ -415,7 +436,7 @@ func (p *parser) parseOptionalWhere() (*predicate, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &predicate{column: column, value: value}, nil
+	return &predicate{column: column, op: predicateEqual, value: value}, nil
 }
 
 func (p *parser) parseIdentifierList() ([]string, error) {
