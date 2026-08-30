@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -120,7 +119,7 @@ func coerceLiteral(literal sqlLiteral, column Column) (Value, error) {
 		}
 		value.Float = floatValue
 	default:
-		return Value{}, fmt.Errorf("unsupported stored column type %q", column.Type)
+		return Value{}, newError(CodeStorage, "column %q has unsupported stored type %q", column.Name, column.Type)
 	}
 
 	return value, nil
