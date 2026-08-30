@@ -2,6 +2,7 @@ package database
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -279,6 +280,76 @@ func TestIsNullSyntaxErrors(t *testing.T) {
 		"SELECT id FROM people WHERE name IS",
 		"SELECT id FROM people WHERE name IS NOT",
 		"SELECT id FROM people WHERE name IS 'Ada'",
+	} {
+		var databaseError *Error
+		_, err := engine.Execute(query)
+		if !errors.As(err, &databaseError) || databaseError.Code != CodeSyntax {
+			t.Errorf("Execute(%q) error = %v, want a syntax error", query, err)
+		}
+	}
+}
+
+func TestScientificNotationLiterals(t *testing.T) {
+	engine, err := Open(filepath.Join(t.TempDir(), "exponents.cooldb"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	if _, err := engine.Execute("CREATE TABLE readings (id INTEGER, value FLOAT)"); err != nil {
+		t.Fatalf("CREATE error = %v", err)
+	}
+
+	cases := []struct {
+		literal string
+		want    string
+	}{
+		{"1e2", "100"},
+		{"1.5E-3", "0.0015"},
+		{"2e+3", "2000"},
+		{"-1.5e2", "-150"},
+	}
+	for index, testCase := range cases {
+		query := fmt.Sprintf("INSERT INTO readings VALUES (%d, %s)", index, testCase.literal)
+		if _, err := engine.Execute(query); err != nil {
+			t.Fatalf("Execute(%q) error = %v", query, err)
+		}
+		result, err := engine.Execute(fmt.Sprintf("SELECT value FROM readings WHERE id = %d", index))
+		if err != nil {
+			t.Fatalf("SELECT error = %v", err)
+		}
+		if got := result.Rows[0][0].String(); got != testCase.want {
+			t.Errorf("%s stored as %q, want %q", testCase.literal, got, testCase.want)
+		}
+	}
+}
+
+func TestExponentLiteralIsNotAnInteger(t *testing.T) {
+	engine, err := Open(filepath.Join(t.TempDir(), "intexp.cooldb"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	if _, err := engine.Execute("CREATE TABLE counters (n INTEGER)"); err != nil {
+		t.Fatalf("CREATE error = %v", err)
+	}
+	var databaseError *Error
+	_, err = engine.Execute("INSERT INTO counters VALUES (1e2)")
+	if !errors.As(err, &databaseError) || databaseError.Code != CodeType {
+		t.Fatalf("Execute() error = %v, want a type error", err)
+	}
+}
+
+// A trailing "e" with no digits must not swallow the number; it stays an
+// identifier so the parser reports a syntax error rather than mis-lexing.
+func TestIncompleteExponentIsASyntaxError(t *testing.T) {
+	engine, err := Open(filepath.Join(t.TempDir(), "badexp.cooldb"))
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	if _, err := engine.Execute("CREATE TABLE readings (value FLOAT)"); err != nil {
+		t.Fatalf("CREATE error = %v", err)
+	}
+	for _, query := range []string{
+		"INSERT INTO readings VALUES (1e)",
+		"INSERT INTO readings VALUES (1e+)",
 	} {
 		var databaseError *Error
 		_, err := engine.Execute(query)
