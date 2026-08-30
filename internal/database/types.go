@@ -1,7 +1,6 @@
 package database
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -15,6 +14,15 @@ const (
 	TypeBoolean DataType = "BOOLEAN"
 	TypeFloat   DataType = "FLOAT"
 )
+
+func (d DataType) valid() bool {
+	switch d {
+	case TypeInteger, TypeText, TypeBoolean, TypeFloat:
+		return true
+	default:
+		return false
+	}
+}
 
 // Column describes a column stored in the database catalog.
 type Column struct {
@@ -56,9 +64,11 @@ func (v Value) String() string {
 	}
 }
 
+// valuesEqual implements SQL three-valued logic: a comparison involving NULL
+// is UNKNOWN, which never satisfies a predicate. Use IS NULL to match NULLs.
 func valuesEqual(left, right Value) bool {
 	if left.Null || right.Null {
-		return left.Null && right.Null
+		return false
 	}
 	if left.Type != right.Type {
 		return false
@@ -120,7 +130,7 @@ func coerceLiteral(literal sqlLiteral, column Column) (Value, error) {
 		}
 		value.Float = floatValue
 	default:
-		return Value{}, fmt.Errorf("unsupported stored column type %q", column.Type)
+		return Value{}, newError(CodeStorage, "column %q has unsupported stored type %q", column.Name, column.Type)
 	}
 
 	return value, nil

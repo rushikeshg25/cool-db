@@ -191,6 +191,8 @@ CoolDB executes exactly one statement per request. A trailing semicolon is optio
 | Select named columns | `SELECT id, name FROM users WHERE id = 1` |
 | Update matching rows | `UPDATE users SET name = 'Ada Lovelace' WHERE id = 1` |
 | Delete matching rows | `DELETE FROM users WHERE id = 1` |
+| Match unset values | `SELECT id FROM users WHERE email IS NULL` |
+| Match set values | `SELECT id FROM users WHERE email IS NOT NULL` |
 
 `UPDATE` and `DELETE` affect every row when the `WHERE` clause is omitted.
 
@@ -202,7 +204,7 @@ CoolDB executes exactly one statement per request. A trailing semicolon is optio
 | `TEXT` | None | Single-quoted strings. Use two single quotes to represent an apostrophe. |
 | `VARCHAR(n)` | None | Text limited to `n` Unicode characters. |
 | `BOOLEAN` | `BOOL` | `true` or `false`. |
-| `FLOAT` | `DOUBLE` | Integer or decimal numeric literals stored as 64-bit floating-point values. |
+| `FLOAT` | `DOUBLE` | Integer, decimal, or exponent numeric literals such as `1.5e-3`, stored as 64-bit floating-point values. |
 
 All column types accept `NULL` unless the column is declared `NOT NULL` or `PRIMARY KEY`.
 
@@ -212,7 +214,8 @@ All column types accept `NULL` unless the column is declared `NOT NULL` or `PRIM
 - Primary keys are implicitly unique and non-null.
 - `UNIQUE` values are checked across all rows in the table.
 - `VARCHAR(n)` validates the number of Unicode characters.
-- `WHERE` currently supports one equality predicate in the form `column = literal`.
+- `WHERE` currently supports one predicate: `column = literal`, `column IS NULL`, or `column IS NOT NULL`.
+- Comparisons follow SQL three-valued logic. `column = NULL` is never true and matches no rows; use `IS NULL` to select unset values.
 - `SELECT` performs a table scan and returns rows in stored order.
 - String literals use SQL-style escaping, such as `'D''Angelo'`.
 
@@ -224,7 +227,7 @@ Each server process owns one database snapshot. If `--db` is omitted, the defaul
 
 The current storage model has these properties:
 
-- Database state is persisted as a versioned JSON snapshot.
+- Database state is persisted as a versioned JSON snapshot, validated on load. A snapshot with a malformed row, an unknown column type, or an unaddressable column name is rejected with a storage error rather than loaded.
 - Each successful mutation is applied to a cloned in-memory state and persisted before it becomes the active state.
 - Snapshot replacement uses a temporary file, file synchronization, an atomic rename, and directory synchronization.
 - Newly created snapshot files use owner-only `0600` permissions.

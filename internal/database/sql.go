@@ -59,8 +59,19 @@ type insertStatement struct {
 
 func (insertStatement) isStatement() {}
 
+// predicateOp is the comparison a WHERE clause applies. v0.1 supports one
+// predicate per statement.
+type predicateOp uint8
+
+const (
+	predicateEqual predicateOp = iota
+	predicateIsNull
+	predicateIsNotNull
+)
+
 type predicate struct {
 	column string
+	op     predicateOp
 	value  sqlLiteral
 }
 
@@ -142,6 +153,7 @@ func lex(input string) ([]token, error) {
 				}
 				break
 			}
+			i = consumeExponent(runes, i)
 			tokens = append(tokens, token{kind: tokenNumber, value: string(runes[start:i]), pos: start})
 		case runes[i] == '\'':
 			i++
@@ -174,6 +186,26 @@ func lex(input string) ([]token, error) {
 	}
 	tokens = append(tokens, token{kind: tokenEOF, pos: len(runes)})
 	return tokens, nil
+}
+
+// consumeExponent extends a numeric literal over a trailing exponent such as
+// the "e-3" of 1.5e-3. It advances only when the full shape is present, so a
+// stray "e" is left to lex as an identifier rather than truncating the number.
+func consumeExponent(runes []rune, i int) int {
+	if i >= len(runes) || (runes[i] != 'e' && runes[i] != 'E') {
+		return i
+	}
+	next := i + 1
+	if next < len(runes) && (runes[next] == '+' || runes[next] == '-') {
+		next++
+	}
+	if next >= len(runes) || !unicode.IsDigit(runes[next]) {
+		return i
+	}
+	for next < len(runes) && unicode.IsDigit(runes[next]) {
+		next++
+	}
+	return next
 }
 
 type parser struct {
@@ -408,6 +440,16 @@ func (p *parser) parseOptionalWhere() (*predicate, error) {
 	if err != nil {
 		return nil, err
 	}
+	if p.acceptKeyword("IS") {
+		op := predicateIsNull
+		if p.acceptKeyword("NOT") {
+			op = predicateIsNotNull
+		}
+		if err := p.expectKeyword("NULL"); err != nil {
+			return nil, err
+		}
+		return &predicate{column: column, op: op}, nil
+	}
 	if err := p.expectSymbol("="); err != nil {
 		return nil, err
 	}
@@ -415,7 +457,7 @@ func (p *parser) parseOptionalWhere() (*predicate, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &predicate{column: column, value: value}, nil
+	return &predicate{column: column, op: predicateEqual, value: value}, nil
 }
 
 func (p *parser) parseIdentifierList() ([]string, error) {
