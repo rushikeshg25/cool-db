@@ -15,6 +15,15 @@ const (
 	TypeFloat   DataType = "FLOAT"
 )
 
+func (d DataType) valid() bool {
+	switch d {
+	case TypeInteger, TypeText, TypeBoolean, TypeFloat:
+		return true
+	default:
+		return false
+	}
+}
+
 // Column describes a column stored in the database catalog.
 type Column struct {
 	Name       string   `json:"name"`
