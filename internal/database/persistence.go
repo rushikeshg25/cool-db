@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -167,13 +168,22 @@ func saveState(path string, state databaseState) error {
 		return fmt.Errorf("replace database: %w", err)
 	}
 
+	// The rename has already succeeded, so the new snapshot is visible. A
+	// failure to fsync the directory only costs durability across a power
+	// loss; reporting it as an error would make Engine.Execute discard the
+	// mutation it just wrote and serve state that no longer matches the file.
+	syncDirectory(directory)
+	return nil
+}
+
+func syncDirectory(directory string) {
 	directoryFile, err := os.Open(directory)
 	if err != nil {
-		return fmt.Errorf("open database directory: %w", err)
+		slog.Warn("could not open database directory to sync", "directory", directory, "error", err)
+		return
 	}
 	defer directoryFile.Close()
 	if err := directoryFile.Sync(); err != nil {
-		return fmt.Errorf("sync database directory: %w", err)
+		slog.Warn("could not sync database directory", "directory", directory, "error", err)
 	}
-	return nil
 }
