@@ -29,7 +29,7 @@ This document outlines the phased development plan for **Cooldb**, focusing on t
 - `.quit` / `.exit`: Implement graceful shutdown to ensure no data loss.
 
 ### 3. Error Handling Framework
-- Define a unified error system in `internal/errors` for cross-component reporting.
+- Extend the unified error system in `internal/database/errors.go` for cross-component reporting.
 - Implement gRPC status codes for meaningful client-side feedback.
 
 ---
